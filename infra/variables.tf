@@ -43,3 +43,9 @@ variable "private_endpoint_subnet_prefixes" {
     description = "App services subnet prefixes"
     type        = list(string)
 }
+
+variable "app_service_plan_sku" {
+    description = "Windows App service plan SKU"
+    type = string
+    default = "B1"
+}
