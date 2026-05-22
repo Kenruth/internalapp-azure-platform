@@ -75,3 +75,23 @@ resource "azurerm_windows_web_app" "web" {
   tags = local.tags
 }
 
+resource "azurerm_mssql_server" "sql" {
+  name                          = "sql-${local.name_prefix}"
+  location                      = azurerm_resource_group.main.location
+  resource_group_name           = azurerm_resource_group.main.name
+  version                       = "12.0"
+  administrator_login           = var.sql_admin_login
+  administrator_login_password  = random_password.sql_admin.result
+  minimum_tls_version           = "1.2"
+  public_network_access_enabled = false
+  tags                          = local.tags
+}
+
+resource "azurerm_mssql_database" "app" {
+  name           = "sqldb-${var.tenant_name}-${var.environment}"
+  server_id      = azurerm_mssql_server.sql.id
+  sku_name       = var.sql_database_sku
+  max_size_gb    = var.sql_database_max_size_gb
+  zone_redundant = false
+  tags           = local.tags
+}

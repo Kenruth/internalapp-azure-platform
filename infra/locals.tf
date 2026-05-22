@@ -6,6 +6,12 @@ resource "random_string" "suffix" {
   upper   = false
 }
 
+resource "random_password" "sql_admin" {
+  length           = 24
+  special          = true
+  override_special = "!#$%&*()-_=+[]{}<>:?"
+}
+
 locals {
   name_prefix    = lower("${var.tenant_name}-${var.environment}-${random_string.suffix.result}")
 

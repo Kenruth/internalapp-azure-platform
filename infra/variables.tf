@@ -46,6 +46,24 @@ variable "private_endpoint_subnet_prefixes" {
 
 variable "app_service_plan_sku" {
     description = "Windows App service plan SKU"
+    type        = string
+    default     = "B1"
+}
+
+variable "sql_admin_login" {
+    description = "sql server admin login name, terraform generates password"
+    type        = string
+    default     = "sqladminuser"
+}
+
+variable "sql_database_sku" {
+    description = "SQL Database SKU"
     type = string
-    default = "B1"
+    default = "Basic"
+}
+
+variable "sql_database_max_size_gb" {
+    description = "SQL Database max size"  
+    type = number
+    default = 2
 }
