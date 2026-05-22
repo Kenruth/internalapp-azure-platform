@@ -1,0 +1,14 @@
+.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+crash.*.log
+*.tfplan
+*.tfvars.local
+*.lock.hcl
+
+# Local editor and OS files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
