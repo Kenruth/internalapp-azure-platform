@@ -11,6 +11,7 @@ Minimal Azure infrastructure-as-code platform, provisioning a secure Windows App
 │   ├── locals.tf
 │   ├── main.tf
 │   ├── variables.tf
+└── README.md
 
 ## Prerequisites
 

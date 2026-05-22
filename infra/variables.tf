@@ -28,3 +28,18 @@ variable "location" {
   description = "Azure region for all resources."
   type        = string
 }
+
+variable "address_space" {
+  description = "VNet address space."
+  type        = list(string)
+}
+
+variable "app_integration_subnet_prefixes" {
+    description = "App services subnet prefixes"
+    type        = list(string)
+}
+
+variable "private_endpoint_subnet_prefixes" {
+    description = "App services subnet prefixes"
+    type        = list(string)
+}
