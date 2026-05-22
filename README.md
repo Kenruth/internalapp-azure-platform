@@ -5,6 +5,12 @@ Minimal Azure infrastructure-as-code platform, provisioning a secure Windows App
 .
 ├── azure-pipelines.yml
 ├── infra
+│   ├── env
+│   │   ├── dev.tfvars
+│   │   └── prod.tfvars
+│   ├── locals.tf
+│   ├── main.tf
+│   ├── variables.tf
 
 ## Prerequisites
 
