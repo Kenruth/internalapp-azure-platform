@@ -1,0 +1,32 @@
+trigger:
+  branches:
+    include:
+      - main
+
+pr:
+  branches:
+    include:
+      - main
+
+parameters:
+  - name: environmentConfig
+    displayName: Terraform environment config
+    type: string
+    default: "internalapp-dev"
+  - name: applyDev
+    displayName: Apply dev after manual validation
+    type: boolean
+    default: false
+
+variables:
+  # Replace these values with your Azure DevOps service connection and remote state details.
+  azureServiceConnection: "sc-azure-dev"
+  tfStateResourceGroup: "rg-tfstate-dev"
+  tfStateStorageAccount: "sttfstatedev0001"
+  tfStateContainer: "tfstate"
+  tfStateKey: "secure-web-sql/${{ parameters.environmentConfig }}.tfstate"
+  tfStateKeyProd: "secure-web-sql/internalapp-prod.tfstate"
+  tfWorkingDirectory: "$(Build.SourcesDirectory)/infra"
+
+pool:
+  vmImage: "ubuntu-latest"
