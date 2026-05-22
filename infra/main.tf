@@ -95,3 +95,18 @@ resource "azurerm_mssql_database" "app" {
   zone_redundant = false
   tags           = local.tags
 }
+
+resource "azurerm_private_dns_zone" "sql" {
+  name                = "privatelink.database.windows.net"
+  resource_group_name = azurerm_resource_group.main.name
+  tags                = local.tags
+}
+
+resource "azurerm_private_dns_zone_virtual_network_link" "sql" {
+  name                  = "pdnslink-${local.name_prefix}"
+  resource_group_name   = azurerm_resource_group.main.name
+  private_dns_zone_name = azurerm_private_dns_zone.sql.name
+  virtual_network_id    = azurerm_virtual_network.main.id
+  registration_enabled  = false
+  tags                  = local.tags
+}
