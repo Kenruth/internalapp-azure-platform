@@ -36,7 +36,7 @@ The dev environment provisions:
   `internalapp-dev.tfvars` and `internalapp-prod.tfvars`.
 
 - Dev and prod also have individual state files stored separately:
-    `secure-web-sql/internalapp-dev.tfstate` & `secure-web-sql/internalapp-prod.tfstate`
+  `secure-web-sql/internalapp-dev.tfstate` & `secure-web-sql/internalapp-prod.tfstate`
 
 ## Remote State
 
@@ -74,4 +74,4 @@ Prod is included only as scaffolding and is not currently implemented end-to-end
 
 ## Future Improvements
 
-The future improvement would be to move all sensitive secrets, passwords, and keys to a dedicated secret handler like Azure Key Vault and source from it whenever secrets are needed.
+For future improvement would be to move all sensitive secrets, passwords, and keys to a dedicated secret handler like Azure Key Vault and source from it whenever secrets are needed.
