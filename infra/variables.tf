@@ -35,35 +35,35 @@ variable "address_space" {
 }
 
 variable "app_integration_subnet_prefixes" {
-    description = "App services subnet prefixes"
-    type        = list(string)
+  description = "App services subnet prefixes"
+  type        = list(string)
 }
 
 variable "private_endpoint_subnet_prefixes" {
-    description = "App services subnet prefixes"
-    type        = list(string)
+  description = "MSSQL private endpoint subnet prefixes"
+  type        = list(string)
 }
 
 variable "app_service_plan_sku" {
-    description = "Windows App service plan SKU"
-    type        = string
-    default     = "B1"
+  description = "Windows App service plan SKU"
+  type        = string
+  default     = "B1"
 }
 
 variable "sql_admin_login" {
-    description = "sql server admin login name, terraform generates password"
-    type        = string
-    default     = "sqladminuser"
+  description = "sql server admin login name, terraform generates password"
+  type        = string
+  default     = "sqladminuser"
 }
 
 variable "sql_database_sku" {
-    description = "SQL Database SKU"
-    type = string
-    default = "Basic"
+  description = "SQL Database SKU"
+  type        = string
+  default     = "Basic"
 }
 
 variable "sql_database_max_size_gb" {
-    description = "SQL Database max size"  
-    type = number
-    default = 2
+  description = "SQL Database max size"
+  type        = number
+  default     = 2
 }

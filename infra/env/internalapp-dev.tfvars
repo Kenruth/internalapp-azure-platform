@@ -1,5 +1,5 @@
 environment = "dev"
-lacation    = "westeurope"
+location    = "westeurope"
 
 tenant_name = "internalapp"
 cost_center = "internal-dev"
