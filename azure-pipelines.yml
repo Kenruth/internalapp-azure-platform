@@ -9,24 +9,208 @@ pr:
       - main
 
 parameters:
-  - name: environmentConfig
-    displayName: Terraform environment config
+  - name: devEnvironmentConfig
+    displayName: Dev Terraform environment config
     type: string
     default: "internalapp-dev"
-  - name: applyDev
-    displayName: Apply dev after manual validation
-    type: boolean
-    default: false
+  - name: prodEnvironmentConfig
+    displayName: Prod Terraform environment config
+    type: string
+    default: "internalapp-prod"
 
 variables:
-  # Replace these values with your Azure DevOps service connection and remote state details.
-  azureServiceConnection: "sc-azure-dev"
-  tfStateResourceGroup: "rg-tfstate-dev"
-  tfStateStorageAccount: "sttfstatedev0001"
-  tfStateContainer: "tfstate"
-  tfStateKey: "secure-web-sql/${{ parameters.environmentConfig }}.tfstate"
-  tfStateKeyProd: "secure-web-sql/internalapp-prod.tfstate"
+  # Example values. Replace these with your Azure DevOps service connections and remote state backends.
+  devAzureServiceConnection: "sc-internalapp-dev"
+  prodAzureServiceConnection: "sc-internalapp-prod"
+  devTfStateResourceGroup: "rg-internalapp-tfstate-dev"
+  prodTfStateResourceGroup: "rg-internalapp-tfstate-prod"
+  devTfStateStorageAccount: "stinternalapptfdev01"
+  prodTfStateStorageAccount: "stinternalapptfprod01"
+  devTfStateContainer: "tfstate"
+  prodTfStateContainer: "tfstate"
+  tfStateKeyDev: "secure-web-sql/${{ parameters.devEnvironmentConfig }}.tfstate"
+  tfStateKeyProd: "secure-web-sql/${{ parameters.prodEnvironmentConfig }}.tfstate"
   tfWorkingDirectory: "$(Build.SourcesDirectory)/infra"
 
 pool:
   vmImage: "ubuntu-latest"
+
+stages:
+  - stage: Validate
+    displayName: "Terraform Validate"
+    jobs:
+      - job: Validate
+        displayName: "Format and validate Terraform"
+        steps:
+          - checkout: self
+          - task: AzureCLI@2
+            displayName: "Terraform init and validate"
+            inputs:
+              azureSubscription: "$(devAzureServiceConnection)"
+              scriptType: bash
+              scriptLocation: inlineScript
+              addSpnToEnvironment: true
+              inlineScript: |
+                set -euo pipefail
+
+                export ARM_CLIENT_ID="$servicePrincipalId"
+                export ARM_CLIENT_SECRET="$servicePrincipalKey"
+                export ARM_TENANT_ID="$tenantId"
+                export ARM_SUBSCRIPTION_ID=`az account show --query id -o tsv`
+
+                cd "$(tfWorkingDirectory)"
+                test -f "env/${{ parameters.devEnvironmentConfig }}.tfvars"
+                test -f "env/${{ parameters.prodEnvironmentConfig }}.tfvars"
+
+                terraform version
+                terraform fmt -check -recursive
+                terraform init \
+                  -backend-config="resource_group_name=$(devTfStateResourceGroup)" \
+                  -backend-config="storage_account_name=$(devTfStateStorageAccount)" \
+                  -backend-config="container_name=$(devTfStateContainer)" \
+                  -backend-config="key=$(tfStateKeyDev)"
+                terraform validate
+
+  - stage: Plan_Dev
+    displayName: "Terraform Plan Dev"
+    dependsOn: Validate
+    jobs:
+      - job: PlanDev
+        displayName: "Plan dev changes"
+        steps:
+          - checkout: self
+          - task: AzureCLI@2
+            displayName: "Terraform plan dev"
+            inputs:
+              azureSubscription: "$(devAzureServiceConnection)"
+              scriptType: bash
+              scriptLocation: inlineScript
+              addSpnToEnvironment: true
+              inlineScript: |
+                set -euo pipefail
+
+                export ARM_CLIENT_ID="$servicePrincipalId"
+                export ARM_CLIENT_SECRET="$servicePrincipalKey"
+                export ARM_TENANT_ID="$tenantId"
+                export ARM_SUBSCRIPTION_ID=`az account show --query id -o tsv`
+
+                cd "$(tfWorkingDirectory)"
+                terraform init \
+                  -backend-config="resource_group_name=$(devTfStateResourceGroup)" \
+                  -backend-config="storage_account_name=$(devTfStateStorageAccount)" \
+                  -backend-config="container_name=$(devTfStateContainer)" \
+                  -backend-config="key=$(tfStateKeyDev)"
+                terraform plan -input=false -out=tfplan.dev -var-file=env/${{ parameters.devEnvironmentConfig }}.tfvars
+                terraform show -no-color tfplan.dev > tfplan.dev.txt
+          - task: PublishBuildArtifacts@1
+            displayName: "Publish dev plan artifact"
+            inputs:
+              PathtoPublish: "$(tfWorkingDirectory)/tfplan.dev"
+              ArtifactName: "tfplan-dev"
+          - task: PublishBuildArtifacts@1
+            displayName: "Publish dev readable plan"
+            inputs:
+              PathtoPublish: "$(tfWorkingDirectory)/tfplan.dev.txt"
+              ArtifactName: "tfplan-dev-summary"
+
+  - stage: Apply_Dev
+    displayName: "Terraform Apply Dev"
+    dependsOn: Plan_Dev
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'), ne(variables['Build.Reason'], 'PullRequest'))
+    jobs:
+      - deployment: ApplyDev
+        displayName: "Apply dev changes"
+        environment: "dev"
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - checkout: self
+                - task: DownloadBuildArtifacts@0
+                  displayName: "Download dev plan artifact"
+                  inputs:
+                    buildType: "current"
+                    downloadType: "single"
+                    artifactName: "tfplan-dev"
+                    downloadPath: "$(System.DefaultWorkingDirectory)/downloaded-plans"
+                - task: AzureCLI@2
+                  displayName: "Terraform apply dev"
+                  inputs:
+                    azureSubscription: "$(devAzureServiceConnection)"
+                    scriptType: bash
+                    scriptLocation: inlineScript
+                    addSpnToEnvironment: true
+                    inlineScript: |
+                      set -euo pipefail
+
+                      export ARM_CLIENT_ID="$servicePrincipalId"
+                      export ARM_CLIENT_SECRET="$servicePrincipalKey"
+                      export ARM_TENANT_ID="$tenantId"
+                      export ARM_SUBSCRIPTION_ID=`az account show --query id -o tsv`
+
+                      cd "$(tfWorkingDirectory)"
+                      terraform init \
+                        -backend-config="resource_group_name=$(devTfStateResourceGroup)" \
+                        -backend-config="storage_account_name=$(devTfStateStorageAccount)" \
+                        -backend-config="container_name=$(devTfStateContainer)" \
+                        -backend-config="key=$(tfStateKeyDev)"
+                      terraform apply -input=false "$(System.DefaultWorkingDirectory)/downloaded-plans/tfplan-dev/tfplan.dev"
+
+  - stage: Approve_Prod_Plan
+    displayName: "Approve Prod Change Review"
+    dependsOn: Validate
+    condition: succeeded()
+    jobs:
+      - job: WaitForProdPlanApproval
+        displayName: "Approve prod plan-only review"
+        pool: server
+        steps:
+          - task: ManualValidation@0
+            timeoutInMinutes: 60
+            inputs:
+              notifyUsers: ""
+              instructions: "Approve to run the production Terraform plan. This stage is review-only and will not apply production."
+              onTimeout: "reject"
+
+  - stage: Plan_Prod
+    displayName: "Terraform Plan Prod"
+    dependsOn: Approve_Prod_Plan
+    condition: succeeded()
+    jobs:
+      - job: PlanProd
+        displayName: "Plan prod changes only"
+        steps:
+          - checkout: self
+          - task: AzureCLI@2
+            displayName: "Terraform plan prod"
+            inputs:
+              azureSubscription: "$(prodAzureServiceConnection)"
+              scriptType: bash
+              scriptLocation: inlineScript
+              addSpnToEnvironment: true
+              inlineScript: |
+                set -euo pipefail
+
+                export ARM_CLIENT_ID="$servicePrincipalId"
+                export ARM_CLIENT_SECRET="$servicePrincipalKey"
+                export ARM_TENANT_ID="$tenantId"
+                export ARM_SUBSCRIPTION_ID=`az account show --query id -o tsv`
+
+                cd "$(tfWorkingDirectory)"
+                terraform init \
+                  -backend-config="resource_group_name=$(prodTfStateResourceGroup)" \
+                  -backend-config="storage_account_name=$(prodTfStateStorageAccount)" \
+                  -backend-config="container_name=$(prodTfStateContainer)" \
+                  -backend-config="key=$(tfStateKeyProd)"
+                terraform plan -input=false -out=tfplan.prod -var-file=env/${{ parameters.prodEnvironmentConfig }}.tfvars
+                terraform show -no-color tfplan.prod > tfplan.prod.txt
+          - task: PublishBuildArtifacts@1
+            displayName: "Publish prod plan artifact"
+            inputs:
+              PathtoPublish: "$(tfWorkingDirectory)/tfplan.prod"
+              ArtifactName: "tfplan-prod"
+          - task: PublishBuildArtifacts@1
+            displayName: "Publish prod readable plan"
+            inputs:
+              PathtoPublish: "$(tfWorkingDirectory)/tfplan.prod.txt"
+              ArtifactName: "tfplan-prod-summary"
