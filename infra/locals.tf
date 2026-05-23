@@ -13,7 +13,7 @@ resource "random_password" "sql_admin" {
 }
 
 locals {
-  name_prefix    = lower("${var.tenant_name}-${var.environment}-${random_string.suffix.result}")
+  name_prefix = lower("${var.tenant_name}-${var.environment}-${random_string.suffix.result}")
 
   tags = {
     environment = var.environment
