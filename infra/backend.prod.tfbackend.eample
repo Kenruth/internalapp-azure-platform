@@ -1,0 +1,5 @@
+# Prod Scaffold only
+resource_group_name  = "rg-internalapp-tfstate-dev"
+storage_account_name = "stinternalapptfdev01"
+container_name       = "tfstate"
+key                  = "secure-web-sql/internalapp-dev.tfstate"

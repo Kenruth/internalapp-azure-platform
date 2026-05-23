@@ -40,7 +40,7 @@ variable "app_integration_subnet_prefixes" {
 }
 
 variable "private_endpoint_subnet_prefixes" {
-  description = "App services subnet prefixes"
+  description = "MSSQL private endpoint subnet prefixes"
   type        = list(string)
 }
 
